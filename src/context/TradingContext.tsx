@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useCallback } from 'react';
+import React, { createContext, useContext, useState, useCallback } from 'react';
 import { ethers } from 'ethers';
 import { useWallet } from './WalletContext';
 import { useToast } from './ToastContext';
@@ -66,6 +66,9 @@ const SELL_CONTRACT_ABI = [
 ];
 
 interface TradingContextType {
+  isTrading: boolean;
+  startTrading: () => void;
+  stopTrading: () => void;
   buyToken: (tokenAddress: string, avaxAmount: number, tokenId: number | string) => Promise<void>;
   sellToken: (tokenAddress: string, percentage: number, tokenId: number | string) => Promise<void>;
   getTokenBalance: (tokenAddress: string) => Promise<string>;
@@ -75,7 +78,8 @@ interface TradingContextType {
 const TradingContext = createContext<TradingContextType | undefined>(undefined);
 
 export const TradingProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const { walletAddress, isConnected } = useWallet();
+  const [isTrading, setIsTrading] = useState(false);
+  const { socket } = useWallet();
   const { showToast } = useToast();
 
   const getProvider = useCallback(() => {
@@ -90,8 +94,6 @@ export const TradingProvider: React.FC<{ children: React.ReactNode }> = ({ child
   }, [getProvider]);
 
   const getTokenBalance = useCallback(async (tokenAddress: string): Promise<string> => {
-    if (!walletAddress) throw new Error('No wallet connected');
-    
     const provider = getProvider();
     const tokenContract = new ethers.Contract(
       tokenAddress,
@@ -100,12 +102,12 @@ export const TradingProvider: React.FC<{ children: React.ReactNode }> = ({ child
     );
 
     const [balance, decimals] = await Promise.all([
-      tokenContract.balanceOf(walletAddress),
+      tokenContract.balanceOf(socket),
       tokenContract.decimals()
     ]);
 
     return ethers.utils.formatUnits(balance, decimals);
-  }, [walletAddress, getProvider]);
+  }, [socket, getProvider]);
 
   const getTokenPrice = useCallback(async (tokenAddress: string, avaxAmount: number, tokenId: number | string): Promise<string> => {
     try {
@@ -123,8 +125,8 @@ export const TradingProvider: React.FC<{ children: React.ReactNode }> = ({ child
   }, [getProvider]);
 
   const buyToken = useCallback(async (tokenAddress: string, avaxAmount: number, tokenId: number | string) => {
-    if (!isConnected || !walletAddress) {
-      showToast({ type: 'error', message: 'Please connect your wallet first' });
+    if (!socket) {
+      showToast({ type: 'error', message: 'No hay conexión con el servidor' });
       return;
     }
 
@@ -194,11 +196,11 @@ export const TradingProvider: React.FC<{ children: React.ReactNode }> = ({ child
       }
       showToast({ type: 'error', message: errorMessage });
     }
-  }, [isConnected, walletAddress, getSigner, getProvider, getTokenBalance, showToast]);
+  }, [socket, getSigner, getProvider, getTokenBalance, showToast]);
 
   const sellToken = useCallback(async (tokenAddress: string, percentage: number, tokenId: number | string) => {
-    if (!isConnected || !walletAddress) {
-      showToast({ type: 'error', message: 'Please connect your wallet first' });
+    if (!socket) {
+      showToast({ type: 'error', message: 'No hay conexión con el servidor' });
       return;
     }
 
@@ -213,7 +215,7 @@ export const TradingProvider: React.FC<{ children: React.ReactNode }> = ({ child
         provider
       );
 
-      const balance = await tokenContract.balanceOf(walletAddress);
+      const balance = await tokenContract.balanceOf(socket);
 
       if (balance.isZero()) {
         throw new Error(`You have no tokens ${tokenAddress} to sell.`);
@@ -250,11 +252,28 @@ export const TradingProvider: React.FC<{ children: React.ReactNode }> = ({ child
         message: error.message || 'Error selling token. Please try again.' 
       });
     }
-  }, [isConnected, walletAddress, getSigner, getProvider, showToast]);
+  }, [socket, getSigner, getProvider, showToast]);
+
+  const startTrading = useCallback(() => {
+    if (!socket) {
+      showToast({ type: 'error', message: 'No hay conexión con el servidor' });
+      return;
+    }
+    setIsTrading(true);
+    showToast({ type: 'success', message: 'Trading iniciado' });
+  }, [socket, showToast]);
+
+  const stopTrading = useCallback(() => {
+    setIsTrading(false);
+    showToast({ type: 'info', message: 'Trading detenido' });
+  }, [showToast]);
 
   return (
     <TradingContext.Provider
       value={{
+        isTrading,
+        startTrading,
+        stopTrading,
         buyToken,
         sellToken,
         getTokenBalance,
