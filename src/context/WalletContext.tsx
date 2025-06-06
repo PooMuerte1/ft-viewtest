@@ -5,11 +5,6 @@ import { useToast } from './ToastContext';
 interface WalletContextType {
   isWebSocketConnected: boolean;
   socket: Socket | null;
-  isConnected: boolean;
-  walletAddress: string | null;
-  rugfiBalance: string;
-  connectWallet: () => Promise<void>;
-  disconnectWallet: () => void;
 }
 
 const WalletContext = createContext<WalletContextType | undefined>(undefined);
@@ -17,13 +12,9 @@ const WalletContext = createContext<WalletContextType | undefined>(undefined);
 export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [isWebSocketConnected, setIsWebSocketConnected] = useState(false);
   const [socket, setSocket] = useState<Socket | null>(null);
-  const [isConnected, setIsConnected] = useState(false);
-  const [walletAddress, setWalletAddress] = useState<string | null>(null);
-  const [rugfiBalance, setRugfiBalance] = useState('0');
   const reconnectAttempts = useRef(0);
   const { showToast } = useToast();
 
-  // Conectar WebSocket al cargar la aplicación
   useEffect(() => {
     connectWebSocket();
     return () => {
@@ -83,25 +74,8 @@ export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     }
   }, [socket]);
 
-  const connectWallet = async () => {
-    try {
-      // Implementación de conexión de wallet
-      setIsConnected(true);
-      setWalletAddress('wallet_address_here');
-      setRugfiBalance('0');
-    } catch (error) {
-      console.error('Error connecting wallet:', error);
-    }
-  };
-
-  const disconnectWallet = () => {
-    setIsConnected(false);
-    setWalletAddress(null);
-    setRugfiBalance('0');
-  };
-
   return (
-    <WalletContext.Provider value={{ isWebSocketConnected, socket, isConnected, walletAddress, rugfiBalance, connectWallet, disconnectWallet }}>
+    <WalletContext.Provider value={{ isWebSocketConnected, socket }}>
       {children}
     </WalletContext.Provider>
   );
