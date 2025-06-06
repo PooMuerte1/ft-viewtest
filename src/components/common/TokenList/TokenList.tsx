@@ -2,9 +2,7 @@ import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useToast } from '../../../context/ToastContext';
 import { useWallet } from '../../../context/WalletContext';
 import { useSoundNotification } from '../../../context/SoundNotificationContext';
-import WalletTokensSidebar from '../../common/WalletTokensSidebar';
-import TradeDrawer from '../TradeDrawer';
-import { useTrading } from '../../../context/TradingContext';
+
 import SearchAnalysisModal from '../SearchAnalysisModal/SearchAnalysisModal';
 
 interface Token {
@@ -634,7 +632,6 @@ const TokenList: React.FC = () => {
   const { showToast } = useToast();
   const { isWebSocketConnected, socket } = useWallet();
   const { playNotificationSound, settings } = useSoundNotification();
-  const [selectedToken, setSelectedToken] = useState<Token | null>(null);
   const [selectedCreator, setSelectedCreator] = React.useState<string | null>(null);
   const [recentTokens, setRecentTokens] = useState<string[]>([]);
 
